@@ -261,16 +261,16 @@ main {
                     }
 
                     &.form__field__input__success {
-                        outline: 2px solid rgba(0, 128, 0, 0.45);
+                        outline: 2px solid #78A75A;
                     }
 
                     &.form__field__input__invalid {
-                        outline: 2px solid rgba(255, 69, 58, 0.75);
+                        outline: 2px solid #BB271A;
                     }
                 }
 
                 .form__field__message {
-                    color: rgba(255, 69, 58, 0.75);
+                    color: #BB271A;
                     font-size: 13px;
                     margin-top: 10px;
                     font-family: 'BoundedVariable', sans-serif;

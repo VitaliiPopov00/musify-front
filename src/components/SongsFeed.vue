@@ -23,7 +23,7 @@
                 </a>
             </li>
             <!-- АРТИСТ TODO: СДЕЛАТЬ АРТИСТА -->
-            <li class="feed__list__item">
+            <!-- <li class="feed__list__item">
                 <a href="#">
                     <img class="artist" src="@/assets/img/loqiemean.jpg" alt="">
                     <div class="feed__list__item__info">
@@ -35,9 +35,9 @@
                         </span>
                     </div>
                 </a>
-            </li>
+            </li> -->
             <!-- АЛЬБОМ TODO: СДЕЛАТЬ АЛЬБОМ -->
-            <li class="feed__list__item">
+            <!-- <li class="feed__list__item">
                 <a href="#">
                     <img src="@/assets/img/ivoxygen_kaleidoscope.jpg" alt="">
                     <div class="feed__list__item__info">
@@ -49,7 +49,7 @@
                         </span>
                     </div>
                 </a>
-            </li>
+            </li> -->
         </ul>
     </div>
 </template>
@@ -94,6 +94,7 @@ export default {
 
     .feed__list {
         display: flex;
+        flex-wrap: wrap;
         gap: 70px;
 
         .feed__list__item {

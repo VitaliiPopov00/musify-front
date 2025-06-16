@@ -3,18 +3,18 @@
         <div class="container">
             <nav class="header__nav">
                 <ul class="header__nav__list">
-                    <li class="header__nav__list__item header__logo__img">
+                    <li @click="goToHome" class="header__nav__list__item header__logo__img">
                         <img src="@/assets/img/logo_white_withou_text.svg" alt="musify">
                     </li>
                     <li class="header__nav__list__item header__logo__text">
-                        <span>musify</span>
+                        <span><slot></slot></span>
                     </li>
-                    <li class="header__nav__list__item header__login__btn">
-                        <a href="#">
-                            <span>войти</span>
-                            <img src="@/assets/img/login.svg" alt="login">
-                        </a>
-                    </li>
+<!--                    <li class="header__nav__list__item header__login__btn">-->
+<!--                        <a href="#">-->
+<!--                            <span></span>-->
+<!--                            <img src="@/assets/img/login.svg" alt="login">-->
+<!--                        </a>-->
+<!--                    </li>-->
                 </ul>
             </nav>
         </div>
@@ -23,7 +23,12 @@
 
 <script>
 export default {
-    name: 'CustomHeader'
+    name: 'CustomHeader',
+    methods: {
+        goToHome() {
+            this.$router.push('/');
+        }
+    }
 }
 </script>
 

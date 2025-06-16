@@ -1,22 +1,17 @@
 <template>
-    <CustomHeader />
+    <CustomHeader>
+        musify
+    </CustomHeader>
     <main>
-        <Sidebar />
+        <SidebarComponent />
         <section class="main">
             <div class="container">
                 <transition name="reccomendations">
-                    <SongsFeed 
-                        v-if="latestSongs.length > 0"
-                        :feed="latestSongs"
-                        @openSong="openSong"
-                    >
-                        Реккомендуем
+                    <SongsFeed v-if="latestSongs.length > 0 || !isLoading" :feed="latestSongs" @openSong="openSong">
+                        Рекомендуем
                     </SongsFeed>
                 </transition>
-                <div 
-                    v-if="isLoading"
-                    class="loader-container"
-                >
+                <div v-if="isLoading" class="loader-container">
                     <div class="loader"></div>
                 </div>
             </div>
@@ -56,10 +51,11 @@ export default {
 
                 if (response.status > 199 && response.status < 300) {
                     this.latestSongs = data.data.songs;
-                    this.isLoading = false;
                 }
             } catch (error) {
                 throw error;
+            } finally {
+                this.isLoading = false;
             }
         },
         openSong(item) {
@@ -100,18 +96,25 @@ body {
     background-color: black;
     position: relative;
     max-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
 }
 
 main {
     margin: 0px 20px 10px 20px;
     display: flex;
+    flex: 1;
+    overflow: hidden;
     overflow-y: scroll;
     overflow-x: hidden;
     transition: .5s all ease;
+    min-height: 0;
 }
 
 .main {
-    flex-grow: 1;
+    flex: 1;
+    min-width: 0;
 
     .container {
         width: 100%;
@@ -120,8 +123,8 @@ main {
         margin-right: 30px;
         padding-top: 50px;
         border-radius: 0px 20px 20px 0px;
+        overflow-y: auto;
     }
-
 }
 
 .loader-container {
