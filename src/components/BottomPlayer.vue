@@ -18,7 +18,7 @@
                 </div>
                 <div class="player">
                     <div class="player__controls">
-                        <button class="player__controls__btn">
+                        <button class="player__controls__btn" @click="restartSong">
                             <img src="@/assets/img/previous_gray.svg" alt="">
                         </button>
                         <button class="player__controls__btn player__controls__btn__play" @click="togglePlay">
@@ -42,7 +42,7 @@
                     </audio>
                 </div>
                 <div class="volume">
-                    <img src="@/assets/img/volume.svg" alt="">
+                    <img src="@/assets/img/volume.svg" alt="" @click="toggleVolume">
                     <div class="volume__line" @click="setVolume">
                         <div class="volume__line__progress" :style="{ width: volume + '%' }"></div>
                     </div>
@@ -86,10 +86,19 @@ export default {
         }
     },
     methods: {
+        restartSong() {
+            this.$refs.audioPlayer.currentTime = 0;
+            if (this.isPlaying) {
+                this.$refs.audioPlayer.play();
+            }
+        },
         async fetchFavorite(song) {
             try {
+                let currentValue = song.isFavorite;
+                song.isFavorite = !currentValue;
+
                 const response = await fetch(this.getFullApiUrl(`api/song/${song.id}/favorite`), {
-                    method: song.isFavorite ? 'DELETE' : 'POST',
+                    method: currentValue ? 'DELETE' : 'POST',
                     headers: {
                         'Authorization': 'Bearer ' + this.getAuthToken
                     },
@@ -97,20 +106,29 @@ export default {
 
                 const data = await response.json();
 
-                if (response.status > 199 && response.status < 300) {
-                    song.isFavorite = !song.isFavorite;
-                    console.log(data);
-                }
-
                 if (response.status > 399) {
-                    song.isFavorite = !song.isFavorite;
-                    console.log(data);
+                    song.isFavorite = currentValue;
+                    throw new Error(JSON.stringify(data));
                 }
-
             } catch (error) {
                 throw error;
-            } finally {
-                this.isLoading = false;
+            }
+        },
+        async fetchIncrement(song) {
+            try {
+                const response = await fetch(this.getFullApiUrl(`api/song/${song.id}/increment`), {
+                    headers: {
+                        'Authorization': 'Bearer ' + this.getAuthToken
+                    },
+                });
+
+                const data = await response.json();
+
+                if (response.status > 399) {
+                    throw new Error(JSON.stringify(data));
+                }
+            } catch (error) {
+                console.log(error);
             }
         },
         playAudio() {
@@ -152,6 +170,15 @@ export default {
             this.volume = (clickPosition / volumeBarWidth) * 100;
             this.$refs.audioPlayer.volume = this.volume / 100;
         },
+        toggleVolume() {
+            if (this.volume > 0) {
+                this.volume = 0;
+            } else {
+                this.volume = 100;
+            }
+
+            this.$refs.audioPlayer.volume = this.volume / 100;
+        },
         formatTime(seconds) {
             if (isNaN(seconds)) return '0:00';
             const minutes = Math.floor(seconds / 60);
@@ -161,8 +188,9 @@ export default {
     },
     watch: {
         song: {
-            handler() {
+            handler(newValue) {
                 this.playAudio();
+                this.fetchIncrement(newValue)
             },
             immediate: true
         }

@@ -19,9 +19,14 @@
                         <img src="@/assets/img/success_green.svg" alt="Успешно">
                     </div>
                     <span>Релиз успешно создан!</span>
-                    <RouterLink class="success__notification__content__btn">
+                    <router-link
+                        :to="{
+                            path: `/release/${releaseInfo.id}`
+                        }"
+                        class="success__notification__content__btn"
+                    >
                         Перейти на страницу с релизом
-                    </RouterLink>
+                    </router-link>
                 </div>
             </div>
             <div

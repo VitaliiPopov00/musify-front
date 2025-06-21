@@ -60,12 +60,16 @@ export default {
                 if (response.status > 399) {
                     this.$store.commit('clearAuth');
                 }
+
+                if (response.status === 401 || response.status === 403) {
+                    this.$router.push({ path: '/login' });
+                }
             } catch (error) {
                 throw error;
             } finally {
                 setTimeout(() => {
                     this.isLoading = false;
-                }, 1000);
+                }, 100);
             }
         }
     },
@@ -127,8 +131,7 @@ export default {
     }
 }
 
-.fade-enter-active,
-.fade-leave-active {
+.fade-enter-active {
     transition: all .5s ease;
 }
 

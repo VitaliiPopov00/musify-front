@@ -27,11 +27,18 @@
                             <span>Любимые треки</span>
                         </router-link>
                     </li>
-                    <li :class="{ active: isActive('/playlists') || isHoveredPlaylist }" class="nav__side__list__item"
+                    <li :class="{ active: isActive('/playlist') || isHoveredPlaylist }" class="nav__side__list__item"
                         @mouseover="isHoveredPlaylist = true" @mouseleave="isHoveredPlaylist = false">
-                        <router-link to="/playlists">
-                            <img :src="isActive('/playlists') || isHoveredPlaylist ? playlistIcon : playlistGrayIcon" alt="">
+                        <router-link to="/playlist">
+                            <img :src="isActive('/playlist') || isHoveredPlaylist ? playlistIcon : playlistGrayIcon" alt="">
                             <span>Мои плейлисты</span>
+                        </router-link>
+                    </li>
+                    <li :class="{ active: isActive('/history') || isHoveredHistory }" class="nav__side__list__item"
+                        @mouseover="isHoveredHistory = true" @mouseleave="isHoveredHistory = false">
+                        <router-link to="/history">
+                            <img :src="isActive('/history') || isHoveredHistory ? HistoryIcon : HistoryGrayIcon" alt="">
+                            <span>История</span>
                         </router-link>
                     </li>
                     <li v-if="isSinger" :class="{ active: isActive('/upload') || isHoveredDownload }" class="nav__side__list__item"
@@ -74,6 +81,8 @@ import playlistGrayIcon from '@/assets/img/playlist_gray.svg'
 import logoutGrayIcon from '@/assets/img/logout_gray.svg'
 import downloadIcon from '@/assets/img/download.svg'
 import downloadGrayIcon from '@/assets/img/download_gray.svg'
+import HistoryIcon from '@/assets/img/history_white.svg';
+import HistoryGrayIcon from '@/assets/img/history_grey.svg';
 
 export default {
     name: 'SidebarComponent',
@@ -82,6 +91,8 @@ export default {
     },
     data() {
         return {
+            HistoryIcon,
+            HistoryGrayIcon,
             homeIcon,
             homeGrayIcon,
             searchIcon,
@@ -96,6 +107,7 @@ export default {
             isHoveredDownload: false,
             isHoveredUpload: false,
             isHoveredPlaylist: false,
+            isHoveredHistory: false,
             isHoveredFavorites: false,
             isHoveredSearch: false,
             isHoveredHome: false
@@ -116,6 +128,7 @@ export default {
 <style scoped>
 .nav__side {
     max-width: 350px;
+    min-width: 350px;
     width: 30%;
     position: sticky;
     top: 0;

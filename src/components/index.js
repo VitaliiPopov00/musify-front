@@ -3,6 +3,7 @@ import SimpleHeader from './SimpleHeader.vue'
 import CustomHeader from './CustomHeader.vue'
 import SongsFeed from './SongsFeed.vue'
 import BottomPlayer from './BottomPlayer.vue'
+import Tracklist from './Tracklist.vue';
 
 export default [
     SidebarComponent,
@@ -10,4 +11,5 @@ export default [
     CustomHeader,
     SongsFeed,
     BottomPlayer,
+    Tracklist,
 ];

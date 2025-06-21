@@ -1,13 +1,30 @@
 <template>
-    <CustomHeader>
-        musify
-    </CustomHeader>
-    <main>
-        <SidebarComponent />
+    <transition name="slide-down">
+        <CustomHeader
+            v-if="!isLoading"
+        >
+            musify
+        </CustomHeader>
+    </transition>
+    <main
+        :style="isLoading ? {
+            'margin-top': '15px'
+        } : {}"
+    >
+        <transition name="slide-right">
+            <SidebarComponent
+                v-if="!isLoading"
+            />
+        </transition>
         <section class="main">
             <div class="container">
-                <transition name="reccomendations">
-                    <SongsFeed v-if="latestSongs.length > 0 || !isLoading" :feed="latestSongs" @openSong="openSong">
+                <transition name="playlist">
+                    <SongsFeed
+                        v-if="!isLoading"
+                        :feed="latestSongs"
+                        @openSong="openSong"
+                        :style="{ 'margin-top': '50px' }"
+                    >
                         Рекомендуем
                     </SongsFeed>
                 </transition>
@@ -121,9 +138,10 @@ main {
         height: 100%;
         background-color: #121212;
         margin-right: 30px;
-        padding-top: 50px;
         border-radius: 0px 20px 20px 0px;
         overflow-y: auto;
+        display: flex;
+        flex-direction: column;
     }
 }
 
@@ -131,7 +149,8 @@ main {
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 100%;
+    background-color: #121212;
+    flex-grow: 1;
 }
 
 .loader {
@@ -151,5 +170,59 @@ main {
     100% {
         transform: rotate(360deg);
     }
+}
+
+.slide-up-enter-active,
+.slide-up-leave-active {
+    transition: all .5s ease;
+}
+
+.slide-up-enter-from,
+.slide-up-leave-to {
+    opacity: 0;
+    transform: translateY(100%);
+}
+
+.slide-right-enter-active,
+.slide-right-leave-active {
+    transition: all .5s ease;
+}
+
+.slide-right-enter-from,
+.slide-right-leave-to {
+    opacity: 0;
+    transform: translatex(-10%);
+}
+
+.slide-down-enter-active,
+.slide-down-leave-active {
+    transition: all .5s ease;
+}
+
+.slide-down-enter-from,
+.slide-down-leave-to {
+    opacity: 0;
+    transform: translateY(-100%);
+}
+
+.opacity-enter-active,
+.opacity-leave-active {
+    transition: all .5s ease;
+}
+
+.opacity-enter-from,
+.opacity-leave-to {
+    opacity: 0;
+}
+
+.playlist-enter-active,
+.playlist-leave-active {
+    transition: all .5s ease;
+}
+
+.playlist-enter-from,
+.playlist-leave-to {
+    opacity: 0;
+    transform: translateY(15%);
 }
 </style>
