@@ -13,6 +13,8 @@ import CreatePlaylistView from '@/views/CreatePlaylistView.vue'
 import PlaylistView from '@/views/PlaylistView.vue';
 import SearchView from '@/views/SearchView.vue'
 import HistoryView from '@/views/HistoryView.vue'
+import AdminHomeView from '@/views/admin/AdminHomeView.vue'
+import adminGenresView from '@/views/admin/AdminGenresView.vue'
 
 const router = createRouter({
     history: createWebHistory(import.meta.env.BASE_URL),
@@ -86,6 +88,16 @@ const router = createRouter({
             path: '/history',
             name: 'historyPlaylist',
             component: HistoryView,
+        },
+        {
+            path: '/admin-panel',
+            name: 'adminPanelHome',
+            component: AdminHomeView,
+        },
+        {
+            path: '/admin-panel/genres',
+            name: 'adminPanelGenres',
+            component: adminGenresView,
         },
     ],
 })

@@ -83,12 +83,9 @@
             </div>
         </section>
     </main>
-    <transition name="slide-up">
-        <BottomPlayer
-            v-if="currentSong"
-            :song="currentSong"
-        />
-    </transition>
+    <!-- <transition name="slide-up">
+        <BottomPlayer v-if="getCurrentSong" />
+    </transition> -->
 </template>
 
 <script>
@@ -98,7 +95,7 @@ import notFavoriteIcon from '@/assets/img/heart_gray.svg';
 
 export default {
     computed: {
-        ...mapGetters(['getFullApiUrl', 'getAuthToken']),
+        ...mapGetters(['getFullApiUrl', 'getAuthToken', 'getCurrentSong']),
         filteredSongs() {
             if (!this.playlist?.songs) return [];
             if (!this.searchQuery) return this.playlist.songs;
@@ -127,7 +124,6 @@ export default {
             playlist: null,
             favoriteIcon,
             notFavoriteIcon,
-            currentSong: null,
             searchQuery: '',
             gradients: [
                 'linear-gradient(45deg, #2d1b4d, #4a2b7a, #2d1b4d)',
@@ -151,7 +147,7 @@ export default {
     },
     methods: {
         playSong(song) {
-            this.currentSong = song;
+            this.$store.dispatch('setCurrentSong', song);
         },
         async fetchHistorySong() {
             try {

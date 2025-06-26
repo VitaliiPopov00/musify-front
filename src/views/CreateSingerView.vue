@@ -367,7 +367,7 @@ export default {
                 return;
             }
 
-            if (!direction && this.currentStep < 5) {
+            if (!direction && this.currentStep <= 5) {
                 this.currentStep -= 0.5;
 
                 setTimeout(() => {
@@ -397,6 +397,7 @@ export default {
                 if (response.status > 199 && response.status < 300) {
                     this.isSuccessCreate = true;
                     this.singerCreatedId = data.data.singerId;
+                    this.$emit('refresh-profile');
                 }
 
                 if (response.status > 399) {

@@ -76,12 +76,9 @@
             </div>
         </section>
     </main>
-    <transition name="slide-up">
-        <BottomPlayer
-            v-if="currentSong"
-            :song="currentSong"
-        />
-    </transition>
+    <!-- <transition name="slide-up">
+        <BottomPlayer v-if="getCurrentSong" />
+    </transition> -->
 </template>
 
 <script>
@@ -91,12 +88,11 @@ import addPlaylist from '@/assets/img/add_circle.svg';
 
 export default {
     computed: {
-        ...mapGetters(['getFullApiUrl', 'getAuthToken']),
+        ...mapGetters(['getFullApiUrl', 'getAuthToken', 'getCurrentSong']),
     },
     data() {
         return {
             isLoading: true,
-            currentSong: null,
             isHoveredAddPlaylist: false,
             playlists: null,
             addPlaylistIconHover,

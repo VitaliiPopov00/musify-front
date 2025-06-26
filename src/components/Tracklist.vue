@@ -19,7 +19,12 @@
                 v-for="(song, index) in songs"
                 :key="song.id"
                 @click="openSong(song)"
-                class="playlist__item"
+                :class="[
+                    'playlist__item',
+                    {
+                        'playlist__item--active': getCurrentSong && getCurrentSong.id === song.id
+                    }
+                ]"
             >
                 <div class="playlist__item__track__info">
                     <div
@@ -30,17 +35,33 @@
                     </div>
                     <div class="playlist__item__track__info__img">
                         <img
+                            v-if="!isUserSongs"
                             :src="getFullApiUrl(`uploads/${song.singers[0].id}/${song.id}/photo.png`)"
                             class="playlist__item__track__info__img__track"
                             alt="">
+                        <img
+                            v-else
+                            src="@/assets/img/default.png"
+                            class="playlist__item__track__info__img__track"
+                            alt=""
+                        >
                         <img class="playlist__item__track__info__img__play"
                             src="@/assets/img/play_without_circle.svg" alt="">
                     </div>
                     <div class="playlist__item__track__info__title">
                         <a href="#" class="playlist__item__track__info__title__song">
-                            {{ song.title }}
+                            <span>{{ song.title }}</span>
+                            <span
+                                v-if="getCurrentSong && getCurrentSong.id === song.id"
+                                class="playlist__item__track__info__title__song__current"
+                            >
+                                сейчас играет
+                            </span>
                         </a>
-                        <div class="playlist__item__track__info__title__artist">
+                        <div
+                            v-if="!isUserSongs"
+                            class="playlist__item__track__info__title__artist"
+                        >
                             <a
                                 v-for="singer in song.singers"
                                 :key="singer.id"
@@ -67,6 +88,7 @@
                 </div>
                 <div class="playlist__item__track__tools">
                     <div
+                        v-if="!isUserSongs"
                         @click.stop="fetchFavorite(song)"
                         class="playlist__item__track__tools__favorite"
                     >
@@ -118,6 +140,14 @@
                             >
                                 <img src="@/assets/img/playlist_remove_grey.svg" alt="">
                                 <span>Удалить из этого плейлиста</span>
+                            </li>
+                            <li
+                                v-if="toolsBtns.includes('delete_song')"
+                                @click.prevent.stop="deleteSong(song.id)"
+                                class="playlist__item__track__tools__more__list__item"
+                            >
+                                <img src="@/assets/img/delete_gray.svg" alt="">
+                                <span>Удалить этот трек</span>
                             </li>
                             <li
                                 v-if="toolsBtns.includes('link_to_singers')"
@@ -255,7 +285,7 @@
 </template>
 
 <script>
-import { mapGetters } from 'vuex';
+import { mapGetters, mapActions } from 'vuex';
 import favoriteIcon from '@/assets/img/heart_fill_gray.svg';
 import notFavoriteIcon from '@/assets/img/heart_gray.svg';
 import deleteFavoriteIcon from '@/assets/img/heart_minus_grey.svg';
@@ -265,6 +295,11 @@ export default {
     name: 'Tracklist',
     props: {
         showEmodziIfEmpty: {
+            type: Boolean,
+            required: false,
+            default: false,
+        },
+        isUserSongs: {
             type: Boolean,
             required: false,
             default: false,
@@ -305,7 +340,7 @@ export default {
         }
     },
     computed: {
-        ...mapGetters(['getFullApiUrl', 'getAuthToken']),
+        ...mapGetters(['getFullApiUrl', 'getAuthToken', 'getCurrentSong', 'getSongsQueue']),
         filteredPlaylists() {
             if (!this.userPlaylists) return [];
             if (!this.searchUserPlaylistsQuery) return this.userPlaylists;
@@ -347,8 +382,33 @@ export default {
         }
     },
     methods: {
+        ...mapActions(['playFromQueue', 'addToPreviousSongs', 'setSongsQueue', 'setCurrentSong', 'setPreviousSongs']),
         openSong(song) {
-            this.$emit('openSong', song);
+            const isInQueue = this.getSongsQueue && this.getSongsQueue.some(queueSong => queueSong.id === song.id);
+
+            if (isInQueue) {
+                this.playFromQueue(song.id);
+            } else {
+                const songIndex = this.songs.findIndex(s => s.id === song.id);
+
+                if (songIndex !== -1) {
+                    if (this.getCurrentSong) {
+                        this.addToPreviousSongs(this.getCurrentSong);
+                    }
+
+                    const songsBeforeSelected = this.songs.slice(0, songIndex);
+                    songsBeforeSelected.forEach(s => {
+                        this.addToPreviousSongs(s);
+                    });
+
+                    const songsAfterSelected = this.songs.slice(songIndex + 1);
+                    this.setSongsQueue(songsAfterSelected);
+
+                    this.setCurrentSong(song);
+                } else {
+                    this.$emit('openSong', song);
+                }
+            }
         },
         formatTime(seconds) {
             if (!seconds) return '0:00';
@@ -371,6 +431,47 @@ export default {
             return playlist.firstSingerId && playlist.firstSongId
                 ? this.getFullApiUrl(`uploads/${playlist.firstSingerId}/${playlist.firstSongId}/photo.png`)
                 : '/src/assets/img/default.png';
+        },
+        async deleteSong(songId) {
+            try {
+                const response = await fetch(this.getFullApiUrl(`api/song/${songId}`), {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': 'Bearer ' + this.getAuthToken
+                    },
+                });
+
+                const data = await response.json();
+
+                if (response.status > 399) {
+                    throw new Error(JSON.stringify(data));
+                }
+
+                // Удаляем трек из всех очередей во Vuex
+                this.$store.dispatch('removeFromSongsQueue', songId);
+
+                // Удаляем трек из previousSongs
+                const currentPreviousSongs = this.$store.getters.getPreviousSongs;
+                const updatedPreviousSongs = currentPreviousSongs.filter(song => song.id !== songId);
+                this.setPreviousSongs(updatedPreviousSongs);
+
+                // Если удаляемый трек является текущим, очищаем currentSong
+                if (this.getCurrentSong && this.getCurrentSong.id === songId) {
+                    this.$store.dispatch('setCurrentSong', null);
+                }
+
+                // Удаляем трек из локального массива songs
+                const songIndex = this.songs.findIndex(song => song.id === songId);
+                if (songIndex !== -1) {
+                    this.songs.splice(songIndex, 1);
+                }
+
+                // Уведомляем родительский компонент об удалении
+                this.$emit('songDeleted', songId);
+
+            } catch (error) {
+                console.log(error);
+            }
         },
         async fetchAddInPlaylist(playlistId, songId) {
             if (this.songsAddedInPlaylist.includes(playlistId)) {
@@ -441,7 +542,7 @@ export default {
                 const data = await response.json();
 
                 if (response.status > 199 && response.status < 300) {
-                    this.userPlaylists = data.playlists;
+                    this.userPlaylists = data.playlists.filter(playlist => playlist.id !== -1);
                 }
 
                 if (response.status > 399) {
@@ -466,7 +567,8 @@ export default {
     flex-grow: 1;
 
     .playlist__item {
-        padding: 10px 0px;
+        border: 2px solid transparent;
+        padding: 8px 0px;
         padding-left: 30px;
         padding-right: 30px;
         transition: .2s;
@@ -532,6 +634,23 @@ export default {
                     font-family: 'UnboundedBold', sans-serif;
                     color: #e0e0e0;
                     margin-bottom: 5px;
+                    position: relative;
+                    width: fit-content;
+
+                    .playlist__item__track__info__title__song__current {
+                        position: absolute;
+                        top: 50%;
+                        left: calc(100% + 15px);
+                        font-size: 13px;
+                        font-family: 'BoundedVariable', sans-serif;
+                        font-weight: 400;
+                        color: #121212;
+                        background-color: #e0e0e0;
+                        padding: 3px 6px;
+                        border-radius: 7px;
+                        white-space: nowrap;
+                        transform: translate(0, -50%);
+                    }
                 }
 
                 .playlist__item__track__info__title__artist {
@@ -984,5 +1103,13 @@ export default {
 .opacity-enter-from,
 .opacity-leave-to {
     opacity: 0;
+}
+
+.playlist__item--active {
+    background: none;
+    color: #fff;
+    border: 2px solid #232526 !important;
+    box-shadow: 0 2px 12px rgba(35,37,38,0.18);
+    border-radius: 10px;
 }
 </style>

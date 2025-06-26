@@ -94,6 +94,7 @@ export default {
                         login: data.data.user.login
                     });
 
+                    this.$emit('refresh-profile');
                     this.$router.push('/');
                 }
 
@@ -150,7 +151,7 @@ main {
     display: flex;
     margin: 0px 15px 15px 15px;
     border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 20px 20px 20px 20px;15
+    border-radius: 20px 20px 20px 20px;
 
     .side__img {
         align-self: stretch;

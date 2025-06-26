@@ -34,9 +34,9 @@
             </div>
         </section>
     </main>
-    <transition name="slide-up">
-        <BottomPlayer v-if="currentSong" :song="currentSong" />
-    </transition>
+    <!-- <transition name="slide-up">
+        <BottomPlayer v-if="getCurrentSong" />
+    </transition> -->
 </template>
 
 <script>
@@ -44,12 +44,11 @@ import { mapGetters } from 'vuex'
 
 export default {
     computed: {
-        ...mapGetters(['getFullApiUrl', 'getAuthToken'])
+        ...mapGetters(['getFullApiUrl', 'getAuthToken', 'getCurrentSong'])
     },
     data() {
         return {
             latestSongs: [],
-            currentSong: null,
             isLoading: true,
         }
     },
@@ -76,7 +75,7 @@ export default {
             }
         },
         openSong(item) {
-            this.currentSong = item;
+            this.$store.dispatch('setCurrentSong', item);
         }
     },
     mounted() {

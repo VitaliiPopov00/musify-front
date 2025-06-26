@@ -41,7 +41,7 @@
                             <span>История</span>
                         </router-link>
                     </li>
-                    <li v-if="isSinger" :class="{ active: isActive('/upload') || isHoveredDownload }" class="nav__side__list__item"
+                    <li v-if="isSinger && !isAdmin" :class="{ active: isActive('/upload') || isHoveredDownload }" class="nav__side__list__item"
                         @mouseover="isHoveredDownload = true"
                         @mouseleave="isHoveredDownload = false">
                         <router-link to="/upload">
@@ -49,12 +49,28 @@
                             <span>Загрузить трек</span>
                         </router-link>
                     </li>
-                    <li v-if="!isSinger" :class="{ active: isActive('/create-singer-profile') || isHoveredDownload }" class="nav__side__list__item"
+                    <li v-if="!isSinger && !isAdmin" :class="{ active: isActive('/create-singer-profile') || isHoveredDownload }" class="nav__side__list__item"
                         @mouseover="isHoveredDownload = true"
                         @mouseleave="isHoveredDownload = false">
                         <router-link to="/create-singer-profile">
-                            <img :src="(isActive('/upload') || isHoveredDownload) ? downloadIcon : downloadGrayIcon" alt="">
+                            <img :src="(isActive('/create-singer-profile') || isHoveredDownload) ? downloadIcon : downloadGrayIcon" alt="">
                             <span>Стать исполнителем</span>
+                        </router-link>
+                    </li>
+                    <li v-if="isSinger && !isAdmin" :class="{ active: isActive(`/artist/${getSingerId}`) || isHoveredSingerProfile }" class="nav__side__list__item"
+                        @mouseover="isHoveredSingerProfile = true"
+                        @mouseleave="isHoveredSingerProfile = false">
+                        <router-link :to="getSingerProfileLink">
+                            <img :src="(isActive(`/artist/${getSingerId}`) || isHoveredSingerProfile) ? ArtistIcon : ArtistGrayIcon" alt="">
+                            <span>Мой исполнитель</span>
+                        </router-link>
+                    </li>
+                    <li v-if="isAdmin" :class="{ active: isActive('/admin-panel') || isHoveredAdminPanel }" class="nav__side__list__item"
+                        @mouseover="isHoveredAdminPanel = true"
+                        @mouseleave="isHoveredAdminPanel = false">
+                        <router-link to="/admin-panel">
+                            <img :src="(isActive('/admin-panel') || isHoveredAdminPanel) ? AdminPanelIcon : AdminPanelGrayIcon" alt="">
+                            <span>Админ-панель</span>
                         </router-link>
                     </li>
                 </ul>
@@ -83,11 +99,21 @@ import downloadIcon from '@/assets/img/download.svg'
 import downloadGrayIcon from '@/assets/img/download_gray.svg'
 import HistoryIcon from '@/assets/img/history_white.svg';
 import HistoryGrayIcon from '@/assets/img/history_grey.svg';
+import AdminPanelIcon from '@/assets/img/admin_white.svg';
+import AdminPanelGrayIcon from '@/assets/img/admin_grey.svg';
+import ArtistIcon from '@/assets/img/artist_white.svg';
+import ArtistGrayIcon from '@/assets/img/artist.svg';
 
 export default {
     name: 'SidebarComponent',
     computed: {
-        ...mapGetters(['getAuthUserLogin', 'isSinger'])
+        ...mapGetters(['getAuthUserLogin', 'isSinger', 'getUserRole', 'getSingerId',]),
+        isAdmin() {
+            return this.getUserRole === 'admin';
+        },
+        getSingerProfileLink() {
+            return `/artist/${this.getSingerId}`;
+        },
     },
     data() {
         return {
@@ -104,13 +130,19 @@ export default {
             logoutGrayIcon,
             downloadIcon,
             downloadGrayIcon,
+            AdminPanelIcon,
+            AdminPanelGrayIcon,
+            ArtistIcon,
+            ArtistGrayIcon,
             isHoveredDownload: false,
+            isHoveredSingerProfile: false,
             isHoveredUpload: false,
             isHoveredPlaylist: false,
             isHoveredHistory: false,
             isHoveredFavorites: false,
             isHoveredSearch: false,
-            isHoveredHome: false
+            isHoveredHome: false,
+            isHoveredAdminPanel: false,
         }
     },
     methods: {

@@ -56,7 +56,10 @@
                         v-if="!isLoading"
                         class="playlist__tools"
                     >
-                        <button class="playlist__tools__start">
+                        <button 
+                            @click="playAll"
+                            class="playlist__tools__start"
+                        >
                             <img src="@/assets/img/play_without_circle_black.svg" alt="">
                             Слушать
                         </button>
@@ -91,12 +94,9 @@
             </div>
         </section>
     </main>
-    <transition name="slide-up">
-        <BottomPlayer
-            v-if="currentSong"
-            :song="currentSong"
-        />
-    </transition>
+    <!-- <transition name="slide-up">
+        <BottomPlayer v-if="getCurrentSong" />
+    </transition> -->
 </template>
 
 <script>
@@ -106,7 +106,7 @@ import notFavoriteIcon from '@/assets/img/heart_gray.svg';
 
 export default {
     computed: {
-        ...mapGetters(['getFullApiUrl', 'getAuthToken']),
+        ...mapGetters(['getFullApiUrl', 'getAuthToken', 'getCurrentSong', 'getSingerId']),
         filteredSongs() {
             if (!this.artistSongs) return [];
             if (!this.searchQuery) return this.artistSongs;
@@ -127,7 +127,24 @@ export default {
             const seconds = totalSeconds % 60;
 
             return `${minutes} минут ${seconds.toString().padStart(2, '0')} секунд`;
-        }
+        },
+        artistIsUserArtist() {
+            return this.getSingerId === parseInt(this.$route.params.id);
+        },
+        toolsBtns() {
+            const baseBtns = [
+                'link_to_release',
+                'favorite_togle',
+                'link_to_singers',
+                'add_in_playlist',
+            ];
+            
+            if (this.artistIsUserArtist) {
+                baseBtns.push('delete_song');
+            }
+            
+            return baseBtns;
+        },
     },
     data() {
         return {
@@ -136,14 +153,7 @@ export default {
             isLoading: true,
             favoriteIcon,
             notFavoriteIcon,
-            currentSong: null,
             searchQuery: '',
-            toolsBtns: [
-                'link_to_release',
-                'favorite_togle',
-                'link_to_singers',
-                'add_in_playlist',
-            ],
             gradients: [
                 'linear-gradient(45deg, #2d1b4d, #4a2b7a, #2d1b4d)',
                 'linear-gradient(45deg, #1a1f3d, #2a3b6a, #1a1f3d)',
@@ -160,7 +170,14 @@ export default {
     },
     methods: {
         playSong(song) {
-            this.currentSong = song;
+            this.$store.dispatch('setCurrentSong', song);
+        },
+        playAll() {
+            if (this.filteredSongs.length > 0) {
+                this.$store.dispatch('clearPreviousSongs');
+                this.$store.dispatch('setSongsQueue', this.filteredSongs.slice(1));
+                this.$store.dispatch('setCurrentSong', this.filteredSongs[0]);
+            }
         },
         async fetchArtistSongs() {
             try {

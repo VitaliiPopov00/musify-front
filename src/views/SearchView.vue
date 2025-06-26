@@ -21,7 +21,7 @@
                                 ref="searchTitle"
                                 class="search__title"
                             >
-                                Ввведи что-нибудь
+                                Введи что-нибудь
                             </h3>
                             <input
                                 v-model="searchQuery"
@@ -76,12 +76,9 @@
             </div>
         </section>
     </main>
-    <transition name="slide-up">
-        <BottomPlayer
-            v-if="currentSong"
-            :song="currentSong"
-        />
-    </transition>
+    <!-- <transition name="slide-up">
+        <BottomPlayer v-if="getCurrentSong" />
+    </transition> -->
 </template>
 
 <script>
@@ -89,7 +86,7 @@ import { mapGetters } from 'vuex'
 
 export default {
     computed: {
-        ...mapGetters(['getFullApiUrl', 'getAuthToken']),
+        ...mapGetters(['getFullApiUrl', 'getAuthToken', 'getCurrentSong']),
         titleHeight() {
             if (this.$refs.searchTitle) {
                 return this.$refs.searchTitle.offsetHeight;
@@ -120,7 +117,6 @@ export default {
             releases: null,
             songs: null,
             singers: null,
-            currentSong: null,
             isWasFetching: false,
             emodzi: [
                 '(´• ω •`)ﾉ',
@@ -169,7 +165,7 @@ export default {
     },
     methods: {
         playSong(song) {
-            this.currentSong = song;
+            this.$store.dispatch('setCurrentSong', song);
         },
         async fetchSearch() {
             if (!this.searchQuery) return;

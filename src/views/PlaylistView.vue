@@ -35,7 +35,10 @@
                                 <p class="playlist__header__info__summary__count">
                                     {{ playlist.songs.length }} трека |
                                 </p>
-                                <p class="playlist__header__info__summary__count">
+                                <p
+                                    v-if="!isUserSongPlaylist"
+                                    class="playlist__header__info__summary__count"
+                                >
                                     {{ new Date(playlist.createdAt).getFullYear() }} |
                                 </p>
                                 <p class="playlist__header__info__summary__count">
@@ -50,32 +53,97 @@
                         v-if="!isLoading"
                         class="playlist__tools"
                     >
-                        <button class="playlist__tools__start">
-                            <img src="@/assets/img/play_without_circle_black.svg" alt="">
-                            Слушать
-                        </button>
-                        <form class="playlist__tools__search" action="#">
-                            <div class="form__field">
-                                <label for="title" class="form__field__label">
-                                    Поиск трека
-                                </label>
-                                <input
-                                    v-model.trim="searchQuery"
-                                    id="title"
-                                    type="text"
-                                    class="form__field__input"
-                                >
-                            </div>
-                        </form>
-                        <button
-                            @click.prevent.stop="fetchDelete"
-                            class="playlist__tools__delete"
+                        <div class="playlist__tools__row">
+                            <button
+                                @click="playAll"
+                                class="playlist__tools__start"
+                            >
+                                <img src="@/assets/img/play_without_circle_black.svg" alt="">
+                                Слушать
+                            </button>
+                            <form class="playlist__tools__search" action="#">
+                                <div class="form__field">
+                                    <label for="title" class="form__field__label">
+                                        Поиск трека
+                                    </label>
+                                    <input
+                                        v-model.trim="searchQuery"
+                                        id="title"
+                                        type="text"
+                                        class="form__field__input"
+                                    >
+                                </div>
+                            </form>
+                            <button
+                                v-if="!isUserSongPlaylist"
+                                @click.prevent.stop="fetchDelete"
+                                class="playlist__tools__delete"
+                            >
+                                <img src="@/assets/img/delete_gray.svg" alt="">
+                                <span>
+                                    Удалить плейлист
+                                </span>
+                            </button>
+                        </div>
+                        <div
+                            v-if="isUserSongPlaylist"
+                            class="playlist__tools__upload"
                         >
-                            <img src="@/assets/img/delete_gray.svg" alt="">
-                            <span>
-                                Удалить плейлист
-                            </span>
-                        </button>
+                            <form
+                                @submit.prevent="uploadFiles"
+                                class="upload-form"
+                                :class="{ 'drag-over': isDragOver }"
+                                @dragover.prevent="handleDragOver"
+                                @dragleave.prevent="handleDragLeave"
+                                @drop.prevent="handleDrop"
+                            >
+                                <div class="upload-area">
+                                    <input
+                                        ref="fileInput"
+                                        type="file"
+                                        multiple
+                                        accept="audio/*"
+                                        @change="handleFileSelect"
+                                        class="file-input"
+                                    >
+                                    <div class="upload-content">
+                                        <img src="@/assets/img/add_circle.svg" alt="Загрузить" class="upload-icon">
+                                        <p class="upload-text">
+                                            Перетащи аудиофайлы сюда или <span class="upload-link" @click="triggerFileInput">выбери файлы</span>
+                                        </p>
+                                        <p class="upload-hint">
+                                            Поддерживаются форматы: MP3
+                                        </p>
+                                    </div>
+                                </div>
+                                <div v-if="selectedFiles.length > 0" class="selected-files">
+                                    <div class="file-list">
+                                        <div
+                                            v-for="(file, index) in selectedFiles"
+                                            :key="index"
+                                            class="file-item"
+                                        >
+                                            <span class="file-name">{{ file.name }}</span>
+                                            <span class="file-size">{{ formatFileSize(file.size) }}</span>
+                                            <button
+                                                @click="removeFile(index)"
+                                                class="remove-file"
+                                                type="button"
+                                            >
+                                                ×
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <button
+                                        type="submit"
+                                        class="upload-button"
+                                        :disabled="isUploading"
+                                    >
+                                        {{ isUploading ? 'Загрузка...' : 'Загрузить файлы' }}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
                     </div>
                 </transition>
                 <transition name="playlist">
@@ -85,6 +153,7 @@
                         :toolsBtns="toolsBtns"
                         :showEmodziIfEmpty="true"
                         :messageIfEmpty="'Здесь пока ничего нет'"
+                        :isUserSongs="true"
                         @openSong="playSong"
                         @deleteFromPlaylist="fetchDeleteSong"
                     />
@@ -95,12 +164,9 @@
             </div>
         </section>
     </main>
-    <transition name="slide-up">
-        <BottomPlayer
-            v-if="currentSong"
-            :song="currentSong"
-        />
-    </transition>
+    <!-- <transition name="slide-up">
+        <BottomPlayer v-if="getCurrentSong" />
+    </transition> -->
 </template>
 
 <script>
@@ -110,7 +176,7 @@ import notFavoriteIcon from '@/assets/img/heart_gray.svg';
 
 export default {
     computed: {
-        ...mapGetters(['getFullApiUrl', 'getAuthToken']),
+        ...mapGetters(['getFullApiUrl', 'getAuthToken', 'getCurrentSong']),
         filteredSongs() {
             if (!this.playlist?.songs) return [];
             if (!this.searchQuery) return this.playlist.songs;
@@ -131,6 +197,9 @@ export default {
             const seconds = totalSeconds % 60;
 
             return `${minutes} минут ${seconds.toString().padStart(2, '0')} секунд`;
+        },
+        isUserSongPlaylist() {
+            return this.$route.params.id == -1;
         }
     },
     data() {
@@ -139,7 +208,6 @@ export default {
             playlist: null,
             favoriteIcon,
             notFavoriteIcon,
-            currentSong: null,
             searchQuery: '',
             gradients: [
                 'linear-gradient(45deg, #2d1b4d, #4a2b7a, #2d1b4d)',
@@ -156,18 +224,32 @@ export default {
             toolsBtns: [
                 'delete_from_playlist',
             ],
+            isDragOver: false,
+            selectedFiles: [],
+            isUploading: false,
         }
     },
     methods: {
         playSong(song) {
-            this.currentSong = song;
+            this.$store.dispatch('setCurrentSong', song);
+        },
+        playAll() {
+            if (this.filteredSongs.length > 0) {
+                this.$store.dispatch('clearPreviousSongs');
+                this.$store.dispatch('setSongsQueue', this.filteredSongs.slice(1));
+                this.$store.dispatch('setCurrentSong', this.filteredSongs[0]);
+            }
         },
         async fetchDeleteSong(songId) {
             try {
                 let currentValue = this.playlist.songs;
                 this.playlist.songs = this.playlist.songs.filter(song => song.id !== songId);
 
-                const response = await fetch(this.getFullApiUrl(`api/user/playlists/${this.$route.params.id}/${songId}`), {
+                const url = this.isUserSongPlaylist
+                    ? this.getFullApiUrl(`api/user/song/${songId}`)
+                    : this.getFullApiUrl(`api/user/playlists/${this.$route.params.id}/${songId}`);
+
+                const response = await fetch(url, {
                     method: 'DELETE',
                     headers: {
                         'Authorization': 'Bearer ' + this.getAuthToken
@@ -229,10 +311,115 @@ export default {
             } finally {
                 this.isLoading = false;
             }
-        }
+        },
+        async fetchUserPlaylistInfo() {
+            try {
+                const response = await fetch(this.getFullApiUrl(`api/user/song`), {
+                    headers: {
+                        'Authorization': 'Bearer ' + this.getAuthToken
+                    },
+                });
+
+                const data = await response.json();
+
+                if (response.status > 199 && response.status < 300) {
+                    this.playlist = data.data;
+                }
+
+                if (response.status > 399) {
+                    throw new Error(JSON.stringify(data));
+                }
+            } catch (error) {
+                console.log(error);
+            } finally {
+                this.isLoading = false;
+            }
+        },
+        handleDragOver(event) {
+            event.preventDefault();
+            this.isDragOver = true;
+        },
+        handleDragLeave(event) {
+            event.preventDefault();
+            this.isDragOver = false;
+        },
+        handleDrop(event) {
+            event.preventDefault();
+            this.isDragOver = false;
+            const files = event.dataTransfer.files;
+            this.handleFileSelect({ target: { files } });
+        },
+        handleFileSelect(event) {
+            const files = event.target.files;
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                this.selectedFiles.push(file);
+            }
+        },
+        removeFile(index) {
+            this.selectedFiles.splice(index, 1);
+        },
+        async uploadFiles() {
+            if (this.selectedFiles.length === 0) {
+                return;
+            }
+
+            this.isUploading = true;
+
+            try {
+                for (const file of this.selectedFiles) {
+                    const formData = new FormData();
+                    formData.append('audio', file);
+
+                    const response = await fetch(this.getFullApiUrl('api/user/song'), {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': 'Bearer ' + this.getAuthToken
+                        },
+                        body: formData
+                    });
+
+                    const data = await response.json();
+
+                    if (response.status > 399) {
+                        throw new Error(JSON.stringify(data));
+                    }
+                }
+
+                // Очищаем список файлов после успешной загрузки
+                this.selectedFiles = [];
+
+                // Обновляем информацию о плейлисте
+                await this.fetchUserPlaylistInfo();
+
+            } catch (error) {
+                console.error('Ошибка при загрузке файлов:', error);
+                // Здесь можно добавить уведомление пользователю об ошибке
+            } finally {
+                this.isUploading = false;
+            }
+        },
+        formatFileSize(size) {
+            if (size < 1024) {
+                return size + ' B';
+            } else if (size < 1024 * 1024) {
+                return (size / 1024).toFixed(2) + ' KB';
+            } else if (size < 1024 * 1024 * 1024) {
+                return (size / (1024 * 1024)).toFixed(2) + ' MB';
+            } else {
+                return (size / (1024 * 1024 * 1024)).toFixed(2) + ' GB';
+            }
+        },
+        triggerFileInput() {
+            this.$refs.fileInput.click();
+        },
     },
     mounted() {
-        this.fetchPlaylistInfo();
+        if (this.$route.params.id == -1) {
+            this.fetchUserPlaylistInfo();
+        } else {
+            this.fetchPlaylistInfo();
+        }
     },
 }
 </script>
@@ -361,10 +548,17 @@ main {
         background-color: #121212;
         padding-top: 20px;
         padding-bottom: 20px;
+        padding-right: 30px;
 
         display: flex;
-        gap: 40px;
-        align-items: center;
+        flex-direction: column;
+        gap: 20px;
+
+        .playlist__tools__row {
+            display: flex;
+            gap: 40px;
+            align-items: center;
+        }
 
         .playlist__tools__start {
             display: flex;
@@ -499,7 +693,138 @@ main {
                 border-color: #BB271A;
                 color: #BB271A;
             }
+        }
 
+        .playlist__tools__upload {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            width: 100%;
+
+            .upload-form {
+                display: flex;
+                flex-direction: column;
+                gap: 20px;
+                padding: 20px;
+                border: 3px dashed rgba(255, 255, 255, 0.1);
+                border-radius: 10px;
+                transition: all 0.2s;
+                width: 100%;
+
+                &.drag-over {
+                    border-color: #9e9e9e;
+                    background-color: #5b5b5b;
+                }
+
+                .upload-area {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 20px;
+                    align-items: center;
+
+                    .file-input {
+                        display: none;
+                    }
+
+                    .upload-content {
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        gap: 10px;
+
+                        .upload-icon {
+                            width: 40px;
+                            height: 40px;
+                        }
+
+                        .upload-text {
+                            font-family: 'BoundedVariable', sans-serif;
+                            font-weight: 400;
+                            color: #e0e0e0;
+                            font-size: 16px;
+                        }
+
+                        .upload-link {
+                            color: #9e9e9e;
+                            cursor: pointer;
+                        }
+
+                        .upload-hint {
+                            font-family: 'BoundedVariable', sans-serif;
+                            font-weight: 400;
+                            color: #9e9e9e;
+                            font-size: 13px;
+                        }
+                    }
+                }
+
+                .selected-files {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 10px;
+
+                    .file-list {
+                        display: flex;
+                        flex-direction: column;
+                        gap: 5px;
+
+                        .file-item {
+                            display: flex;
+                            justify-content: flex-start;
+                            gap: 10px;
+                            align-items: center;
+
+                            .file-name {
+                                font-family: 'BoundedVariable', sans-serif;
+                                font-weight: 400;
+                                color: #e0e0e0;
+                                font-size: 13px;
+                            }
+
+                            .file-size {
+                                font-family: 'BoundedVariable', sans-serif;
+                                font-weight: 400;
+                                color: #9e9e9e;
+                                font-size: 13px;
+                            }
+
+                            .remove-file {
+                                cursor: pointer;
+                                background: none;
+                                border: none;
+                                padding: 0;
+                                font: inherit;
+                                color: inherit;
+                                font-size: 20px;
+                                font-family: 'BoundedVariable', sans-serif;
+                                font-weight: 400;
+                                color: #BB271A
+                            }
+                        }
+                    }
+
+                    .upload-button {
+                        font-family: 'UnboundedBold', sans-serif;
+                        font-weight: 400;
+                        background-color: #e0e0e0;
+                        border: none;
+                        padding: 10px 20px;
+                        letter-spacing: 1px;
+                        border-radius: 10px;
+                        transition: .2s;
+                        color: #333333;
+
+                        &:hover {
+                            border-radius: 10px;
+                        }
+
+                        &:disabled {
+                            background-color: #9e9e9e;
+                            cursor: not-allowed;
+                        }
+                    }
+                }
+            }
         }
     }
 }

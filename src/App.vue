@@ -1,5 +1,5 @@
 <template>
-    <Transition name="fade" mode="out-in">
+    <TransitionGroup name="fade" mode="out-in">
         <div
             v-if="isLoading"
             class="load__section"
@@ -15,8 +15,14 @@
                 </li>
             </ul>
         </div>
-        <RouterView v-else key="content" />
-    </Transition>
+        <RouterView 
+            @refresh-profile="fetchProfile"
+            v-else key="content"
+        />
+        <BottomPlayer 
+            v-if="!isLoading && getCurrentSong"
+        />
+    </TransitionGroup>
 </template>
 
 <script>
@@ -24,7 +30,7 @@ import { mapGetters, mapActions } from 'vuex';
 
 export default {
     computed: {
-        ...mapGetters(['getAuthToken', 'getFullApiUrl'])
+        ...mapGetters(['getAuthToken', 'getFullApiUrl', 'getCurrentSong'])
     },
     data() {
         return {

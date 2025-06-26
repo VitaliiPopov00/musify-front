@@ -23,12 +23,12 @@
                         <div class="artist__header__background__img">
                         </div>
                         <div class="artist__header__info">
-                            <div class="artist__header__info__confirmed">
-                                <img src="@/assets/img/confirmed.svg" alt="">
-                                <p>
-                                    Подтвержденный исполнитель
-                                </p>
-                            </div>
+<!--                            <div class="artist__header__info__confirmed">-->
+<!--                                <img src="@/assets/img/confirmed.svg" alt="">-->
+<!--                                <p>-->
+<!--                                    Подтвержденный исполнитель-->
+<!--                                </p>-->
+<!--                            </div>-->
                             <div class="artist__header__info__name">
                                 <h2>
                                     {{ artist.name }}
@@ -47,7 +47,11 @@
                         v-if="!isLoading"
                         class="artist__btns"
                     >
-                        <a href="#" class="artist__btns__start">
+                        <a
+                            @click="playAll"
+                            href="#"
+                            class="artist__btns__start"
+                        >
                             <img src="@/assets/img/play_without_circle_black.svg" alt="">
                             <span>Слушать</span>
                         </a>
@@ -96,7 +100,7 @@
                 </transition-group>
                 <transition-group name="playlist">
                     <div
-                        v-if="!isLoading"
+                        v-if="!isLoading && resultReleasesIsExists"
                         class="last__release"
                     >
                         <span class="last__release__title">
@@ -129,33 +133,67 @@
                             </li>
                         </ul>
                     </div>
-                    <div
-                        v-if="
-                            !isLoading
-                            && !resultReleasesIsExists
-                        "
-                        class="not__found"
-                    >
-                        <span class="not__found__emodzi">
-                            {{ randomEmodzi }}
-                        </span>
-                        <span class="not__found__message">
-                            Здесь пока ничего нет
-                        </span>
-                    </div>
                 </transition-group>
+                <TransitionGroup name="playlist">
+                    <div
+                        v-if="!isLoading && resultFutureReleasesIsExists"
+                        class="future__release"
+                    >
+                        <span class="future__release__title">
+                            Предстоящие релизы
+                        </span>
+                        <ul class="future__release__list">
+                            <li
+                                v-for="futureArtistRelease in futureArtistReleases"
+                                :key="futureArtistRelease.id"
+                                class="future__release__list__item"
+                            >
+                                <div class="future__release__list__item__img">
+                                    <img src="@/assets/img/bad_jay.f.k.beats.jpg" alt="">
+                                </div>
+                                <span class="future__release__list__item__date">
+                                    {{ formatDateTime(futureArtistRelease) }}
+                                </span>
+                                <span class="future__release__list__item__title">
+                                    {{ futureArtistRelease.name }}
+                                </span>
+                            </li>
+                        </ul>
+                    </div>
+                </TransitionGroup>
+                <transition name="playlist">
+                    <div
+                        v-if="!isLoading"
+                        class="artist__summary"
+                    >
+                        <h3 class="artist__summary__title">{{ artist.name }}</h3>
+                        <p class="artist__summary__text">{{ artist.description }}</p>
+                        <ul class="artist__summary__genres__list">
+                            <li
+                                v-for="genre in artist.genres"
+                                :key="genre.id"
+                                class="artist__summary__genres__list__item"
+                            >
+                                <span>{{ genre.title }}</span>
+                            </li>
+                            <li
+                                v-if="artist.custom_genre && artistIsUserArtist"
+                                class="artist__summary__genres__list__item__custom"
+                            >
+                                <span>{{ artist.custom_genre }}</span>
+                            </li>
+                        </ul>
+                    </div>
+                </transition>
                 <div v-if="isLoading" class="loader-container">
                     <div class="loader"></div>
                 </div>
             </div>
         </section>
     </main>
-    <transition name="slide-up">
-        <BottomPlayer
-            v-if="currentSong"
-            :song="currentSong"
-        />
-    </transition>
+    <!-- <transition name="slide-up">
+        <BottomPlayer v-if="getCurrentSong" />
+    </transition> -->
 </template>
 
 <script>
@@ -163,7 +201,7 @@ import { mapGetters } from 'vuex';
 
 export default {
     computed: {
-        ...mapGetters(['getFullApiUrl', 'getAuthToken']),
+        ...mapGetters(['getFullApiUrl', 'getAuthToken', 'getCurrentSong', 'getSingerId']),
         randomGradient() {
             const randomIndex = Math.floor(Math.random() * this.gradients.length);
             return this.gradients[randomIndex];
@@ -198,24 +236,38 @@ export default {
         resultReleasesIsExists() {
             return this.lastArtistReleases?.length > 0;
         },
+        resultFutureReleasesIsExists() {
+            return this.futureArtistReleases?.length > 0;
+        },
         randomEmodzi() {
             const randomIndex = Math.floor(Math.random() * this.emodzi.length);
             return this.emodzi[randomIndex];
         },
-    },
-    data() {
-        return {
-            toolsBtns: [
+        artistIsUserArtist() {
+            return this.getSingerId === parseInt(this.$route.params.id);
+        },
+        toolsBtns() {
+            const baseBtns = [
                 'link_to_release',
                 'favorite_togle',
                 'link_to_singers',
                 'add_in_playlist',
-            ],
-            currentSong: null,
+            ];
+
+            if (this.artistIsUserArtist) {
+                baseBtns.push('delete_song');
+            }
+
+            return baseBtns;
+        },
+    },
+    data() {
+        return {
             isLoading: true,
             artistSongs: null,
             artist: null,
             lastArtistReleases: null,
+            futureArtistReleases: null,
             isMoreArtistSongsOpen: false,
             gradients: [
                 'linear-gradient(45deg, #2d1b4d, #4a2b7a, #2d1b4d)',
@@ -244,8 +296,30 @@ export default {
         }
     },
     methods: {
+        formatDateTime(futureRelease) {
+            if (!futureRelease.date || !futureRelease.time) {
+                return '';
+            }
+
+            const date = new Date(futureRelease.date);
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const year = date.getFullYear();
+
+            // Извлекаем часы и минуты из времени
+            const [hours, minutes] = futureRelease.time.split(':');
+
+            return `${day}.${month}.${year} ${hours}:${minutes}`;
+        },
         playSong(song) {
-            this.currentSong = song;
+            this.$store.dispatch('setCurrentSong', song);
+        },
+        playAll() {
+            if (this.artistSongs.length > 0) {
+                this.$store.dispatch('clearPreviousSongs');
+                this.$store.dispatch('setSongsQueue', this.artistSongs.slice(1));
+                this.$store.dispatch('setCurrentSong', this.artistSongs[0]);
+            }
         },
         async fetchLastArtistReleases() {
             try {
@@ -259,6 +333,29 @@ export default {
 
                 if (response.status > 199 && response.status < 300) {
                     this.lastArtistReleases = data.data;
+                }
+
+                if (response.status > 399) {
+                    throw new Error(JSON.stringify(data));
+                }
+            } catch (error) {
+                console.log(error);
+            } finally {
+                this.isLoading = this.artistSongs === null || this.artist === null;
+            }
+        },
+        async fetchFutureArtistReleases() {
+            try {
+                const response = await fetch(this.getFullApiUrl(`api/releases/singer/${this.$route.params.id}/future`), {
+                    headers: {
+                        'Authorization': 'Bearer ' + this.getAuthToken
+                    },
+                });
+
+                const data = await response.json();
+
+                if (response.status > 199 && response.status < 300) {
+                    this.futureArtistReleases = data.data;
                 }
 
                 if (response.status > 399) {
@@ -343,6 +440,7 @@ export default {
         this.fetchArtistInfo();
         this.fetchArtistSongs();
         this.fetchLastArtistReleases();
+        this.fetchFutureArtistReleases();
     },
 }
 </script>
@@ -604,6 +702,124 @@ main {
                     }
                 }
             }
+        }
+
+        .future__release {
+            padding-block: 50px;
+            padding-left: 30px;
+            padding-right: 30px;
+
+            .future__release__title {
+                font-size: 25px;
+                font-family: 'UnboundedBold', sans-serif;
+                color: #e0e0e0;
+                margin-bottom: 20px;
+                display: block;
+            }
+
+            .future__release__list {
+                display: flex;
+                gap: 30px;
+                flex-wrap: nowrap;
+                overflow-x: scroll;
+
+                .future__release__list__item {
+                    min-width: 400px;
+                    min-height: 400px;
+                    max-width: 400px;
+                    max-height: 400px;
+                    border-radius: 20px;
+                    overflow: hidden;
+                    position: relative;
+
+                    .future__release__list__item__img {
+                        width: 100%;
+                        height: 100%;
+
+                        img {
+                            filter: blur(5px);
+                            width: 100%;
+                            height: 100%;
+                            object-fit: cover;
+                        }
+                    }
+
+                    .future__release__list__item__date {
+                        font-family: 'BoundedVariable', sans-serif;
+                        font-weight: 400;
+                        font-size: 17px;
+                        position: absolute;
+                        padding: 3px 6px;
+                        border-radius: 6px;
+                        top: 20px;
+                        right: 20px;
+                        background-color: #fff;
+                        color: #121212;
+                    }
+
+                    .future__release__list__item__title {
+                        max-width: 320px;
+                        white-space: wrap;
+                        font-family: 'UnboundedBold', sans-serif;
+                        font-size: 25px;
+                        position: absolute;
+                        padding: 3px 6px;
+                        border-radius: 6px;
+                        bottom: 30px;
+                        left: 20px;
+                        color: #2c2c2c;
+                        background-color: #fff;
+                    }
+                }
+            }
+        }
+    }
+}
+
+.artist__summary {
+    padding: 20px;
+    border-radius: 10px;
+    background-color: #2c2c2c;
+    margin: 50px 30px 30px;
+
+    .artist__summary__title {
+        font-size: 30px;
+        font-family: 'UnboundedBold', sans-serif;
+        color: #e0e0e0;
+        margin-bottom: 30px;
+    }
+
+    .artist__summary__text {
+        font-size: 15px;
+        font-family: 'BoundedVariable', sans-serif;
+        font-weight: 400;
+        color: #9e9e9e;
+        margin-bottom: 30px;
+    }
+
+    .artist__summary__genres__list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+
+        .artist__summary__genres__list__item {
+            font-size: 15px;
+            font-family: 'UnboundedBold', sans-serif;
+            font-weight: 400;
+            color: #9e9e9e;
+            padding: 10px 20px;
+            border-radius: 9999px;
+            border: 1px solid #9e9e9e;
+        }
+
+        .artist__summary__genres__list__item__custom {
+            font-size: 15px;
+            font-family: 'UnboundedBold', sans-serif;
+            font-weight: 400;
+            color: #EAC452;
+            padding: 10px 20px;
+            border-radius: 9999px;
+            border: 1px solid #EAC452;
         }
     }
 }

@@ -76,6 +76,15 @@
                                 >
                             </div>
                         </form>
+                        <button
+                            @click.prevent.stop="fetchDeleteRelease"
+                            class="playlist__tools__delete"
+                        >
+                            <img src="@/assets/img/delete_gray.svg" alt="">
+                            <span>
+                                Удалить релиз
+                            </span>
+                        </button>
                     </div>
                 </transition>
                 <transition name="playlist">
@@ -92,12 +101,9 @@
             </div>
         </section>
     </main>
-    <transition name="slide-up">
-        <BottomPlayer
-            v-if="currentSong"
-            :song="currentSong"
-        />
-    </transition>
+    <!-- <transition name="slide-up">
+        <BottomPlayer v-if="getCurrentSong" />
+    </transition> -->
 </template>
 
 <script>
@@ -107,7 +113,7 @@ import notFavoriteIcon from '@/assets/img/heart_gray.svg';
 
 export default {
     computed: {
-        ...mapGetters(['getFullApiUrl', 'getAuthToken']),
+        ...mapGetters(['getFullApiUrl', 'getAuthToken', 'getCurrentSong', 'getSingerId']),
         filteredSongs() {
             if (!this.release?.songs) return [];
             if (!this.searchQuery) return this.release.songs;
@@ -128,7 +134,24 @@ export default {
             const seconds = totalSeconds % 60;
 
             return `${minutes} минут ${seconds.toString().padStart(2, '0')} секунд`;
-        }
+        },
+        artistIsUserArtist() {
+            if (!this.release?.singers) return false;
+            return this.release.singers.some(singer => singer.id === this.getSingerId);
+        },
+        toolsBtns() {
+            const baseBtns = [
+                'favorite_togle',
+                'link_to_singers',
+                'add_in_playlist',
+            ];
+            
+            if (this.artistIsUserArtist) {
+                baseBtns.push('delete_song');
+            }
+            
+            return baseBtns;
+        },
     },
     data() {
         return {
@@ -136,13 +159,7 @@ export default {
             release: null,
             favoriteIcon,
             notFavoriteIcon,
-            currentSong: null,
             searchQuery: '',
-            toolsBtns: [
-                'favorite_togle',
-                'link_to_singers',
-                'add_in_playlist',
-            ],
             gradients: [
                 'linear-gradient(45deg, #2d1b4d, #4a2b7a, #2d1b4d)',
                 'linear-gradient(45deg, #1a1f3d, #2a3b6a, #1a1f3d)',
@@ -159,7 +176,27 @@ export default {
     },
     methods: {
         playSong(song) {
-            this.currentSong = song;
+            this.$store.dispatch('setCurrentSong', song);
+        },
+        async fetchDeleteRelease() {
+            try {
+                const response = await fetch(this.getFullApiUrl(`api/release/${this.$route.params.id}`), {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': 'Bearer ' + this.getAuthToken
+                    },
+                });
+
+                const data = await response.json();
+
+                if (response.status > 399) {
+                    throw new Error(JSON.stringify(data));
+                }
+
+                this.$router.push('/');
+            } catch (error) {
+                console.log(error);
+            }
         },
         async fetchReleaseInfo() {
             try {
@@ -431,6 +468,27 @@ main {
                 margin-top: 10px;
                 width: 120%;
                 align-self: center;
+            }
+        }
+
+        .playlist__tools__delete {
+            cursor: pointer;
+            padding: 10px 20px 10px 10px;
+            font-size: 12px;
+            font-family: 'BoundedVariable', sans-serif;
+            font-weight: 400;
+            color: #9e9e9e;
+            background-color: transparent;
+            border: 1px solid rgba(255, 255, 255, .1);
+            border-radius: 10px;
+            transition: .2s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+
+            &:hover {
+                border-color: #BB271A;
+                color: #BB271A;
             }
         }
     }

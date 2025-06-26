@@ -55,7 +55,7 @@
 </template>
 
 <script>
-import { mapGetters } from 'vuex';
+import { mapGetters, mapActions } from 'vuex';
 
 export default {
     name: 'SongsFeed',
@@ -66,11 +66,21 @@ export default {
         }
     },
     computed: {
-        ...mapGetters(['getFullApiUrl'])
+        ...mapGetters(['getFullApiUrl', 'getSongsQueue'])
     },
     methods: {
+        ...mapActions(['playFromQueue']),
         openSong(item) {
-            this.$emit('openSong', item);
+            // Проверяем, есть ли трек в текущей очереди
+            const isInQueue = this.getSongsQueue && this.getSongsQueue.some(queueSong => queueSong.id === item.id);
+            
+            if (isInQueue) {
+                // Если трек в очереди, используем playFromQueue
+                this.playFromQueue(item.id);
+            } else {
+                // Если трек не в очереди, просто устанавливаем как текущий
+                this.$emit('openSong', item);
+            }
         }
     }
 }

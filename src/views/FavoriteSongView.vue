@@ -45,7 +45,10 @@
                         v-if="!isLoading"
                         class="playlist__tools"
                     >
-                        <button class="playlist__tools__start">
+                        <button 
+                            @click="playAll"
+                            class="playlist__tools__start"
+                        >
                             <img src="@/assets/img/play_without_circle_black.svg" alt="">
                             Слушать
                         </button>
@@ -77,9 +80,9 @@
             </div>
         </section>
     </main>
-    <transition name="slide-up">
-        <BottomPlayer v-if="currentSong" :song="currentSong" />
-    </transition>
+    <!-- <transition name="slide-up">
+        <BottomPlayer v-if="getCurrentSong" />
+    </transition> -->
 </template>
 
 <script>
@@ -90,7 +93,7 @@ import notFavoriteIcon from '@/assets/img/heart_gray.svg';
 export default {
     name: 'FavoriteSongView',
     computed: {
-        ...mapGetters(['getFullApiUrl', 'getAuthToken']),
+        ...mapGetters(['getFullApiUrl', 'getAuthToken', 'getCurrentSong']),
         filteredSongs() {
             if (!this.favoriteSongs) return [];
             if (!this.searchQuery) return this.favoriteSongs;
@@ -104,7 +107,6 @@ export default {
         return {
             favoriteSongs: [],
             searchQuery: '',
-            currentSong: null,
             isLoading: true,
             favoriteIcon,
             notFavoriteIcon,
@@ -142,7 +144,14 @@ export default {
             }
         },
         playSong(song) {
-            this.currentSong = song;
+            this.$store.dispatch('setCurrentSong', song);
+        },
+        playAll() {
+            if (this.filteredSongs.length > 0) {
+                this.$store.dispatch('clearPreviousSongs');
+                this.$store.dispatch('setSongsQueue', this.filteredSongs.slice(1));
+                this.$store.dispatch('setCurrentSong', this.filteredSongs[0]);
+            }
         },
     },
     mounted() {
@@ -201,13 +210,14 @@ main {
 
     .container {
         width: 100%;
-        height: 100%;
+        min-height: 100%;
         background-color: #121212;
         margin-right: 30px;
         border-radius: 0px 20px 20px 0px;
         overflow-y: auto;
         display: flex;
         flex-direction: column;
+        justify-content: center;
     }
 
     .playlist__header {

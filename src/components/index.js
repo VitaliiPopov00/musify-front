@@ -4,6 +4,7 @@ import CustomHeader from './CustomHeader.vue'
 import SongsFeed from './SongsFeed.vue'
 import BottomPlayer from './BottomPlayer.vue'
 import Tracklist from './Tracklist.vue';
+import adminSidebar from '@/components/AdminSidebarComponent.vue'
 
 export default [
     SidebarComponent,
@@ -12,4 +13,5 @@ export default [
     SongsFeed,
     BottomPlayer,
     Tracklist,
+    adminSidebar
 ];

@@ -3,28 +3,39 @@
         <section class="bottom__player">
             <div class="container">
                 <div class="song">
-                    <img :src="getFullApiUrl(`uploads/${song.singers[0].id}/${song.id}/photo.png`)" alt="">
+                    <img
+                        :src="photoSong()"
+                        alt=""
+                    >
                     <div class="song__info">
                         <span class="song__info__name">
                             {{ song.title }}
                         </span>
-                        <span class="song__info__artists">
+                        <span
+                            v-if="!song.is_user_song"
+                            class="song__info__artists"
+                        >
                             <a v-for="singer in song.singers" :key="singer.id" href="#">{{ singer.name }}{{ singer ===
                                 song.singers[song.singers.length - 1] ? '' : ', ' }}</a>
                         </span>
                     </div>
-                    <img @click.prevent.stop="fetchFavorite(song)" class="song__favorite__btn"
-                        :src="song.isFavorite ? favoriteIcon : notFavoriteIcon" alt="">
+                    <img 
+                        v-if="!song.is_user_song"
+                        @click.prevent.stop="fetchFavorite(song)" 
+                        :src="song.isFavorite ? favoriteIcon : notFavoriteIcon" 
+                        class="song__favorite__btn"
+                        alt=""
+                    >
                 </div>
                 <div class="player">
                     <div class="player__controls">
-                        <button class="player__controls__btn" @click="restartSong">
+                        <button class="player__controls__btn" @click="playPrev">
                             <img src="@/assets/img/previous_gray.svg" alt="">
                         </button>
                         <button class="player__controls__btn player__controls__btn__play" @click="togglePlay">
                             <img :src="isPlaying ? pauseIcon : playIcon" alt="">
                         </button>
-                        <button class="player__controls__btn">
+                        <button class="player__controls__btn" @click="playNext">
                             <img src="@/assets/img/next_gray.svg" alt="">
                         </button>
                     </div>
@@ -35,10 +46,17 @@
                         </div>
                         <span class="player__progress__time">{{ formatTime(duration) }}</span>
                     </div>
-                    <audio :key="`audio-${song.id}`" ref="audioPlayer" @timeupdate="onTimeUpdate"
-                        @loadedmetadata="onLoadedMetadata" @ended="onEnded">
-                        <source :src="getFullApiUrl(`uploads/${song.singers[0].id}/${song.id}/song.mp3`)"
-                            type="audio/mpeg">
+                    <audio
+                        :key="`audio-${song.id}`"
+                        ref="audioPlayer"
+                        @timeupdate="onTimeUpdate"
+                        @loadedmetadata="onLoadedMetadata"
+                        @ended="onEnded"
+                    >
+                        <source
+                            :src="songFile()"
+                            type="audio/mpeg"
+                        >
                     </audio>
                 </div>
                 <div class="volume">
@@ -53,7 +71,7 @@
 </template>
 
 <script>
-import { mapGetters } from 'vuex';
+import { mapGetters, mapActions } from 'vuex';
 import playIcon from '@/assets/img/start.svg';
 import pauseIcon from '@/assets/img/pause.svg';
 import favoriteIcon from '@/assets/img/heart_fill_gray.svg';
@@ -61,12 +79,6 @@ import notFavoriteIcon from '@/assets/img/heart_gray.svg';
 
 export default {
     name: 'BottomPlayer',
-    props: {
-        song: {
-            type: Object,
-            required: true
-        }
-    },
     data() {
         return {
             isPlaying: false,
@@ -80,12 +92,26 @@ export default {
         }
     },
     computed: {
-        ...mapGetters(['getFullApiUrl', 'getAuthToken']),
+        ...mapGetters(['getFullApiUrl', 'getAuthToken', 'getCurrentSong', 'getSongsQueue', 'getPreviousSongs', 'getAuthUserId']),
+        song() {
+            return this.getCurrentSong;
+        },
         progress() {
             return (this.currentTime / this.duration) * 100 || 0;
-        }
+        },
     },
     methods: {
+        ...mapActions(['nextSong', 'prevSong']),
+        photoSong() {
+            return !this.song.is_user_song
+                ? this.getFullApiUrl(`uploads/${this.song.singers[0].id}/${this.song.id}/photo.png`)
+                : '/src/assets/img/default.png';
+        },
+        songFile() {
+            return !this.song.is_user_song
+                ? this.getFullApiUrl(`uploads/${this.song.singers[0].id}/${this.song.id}/song.mp3`)
+                : this.getFullApiUrl(`uploads/user/${this.getAuthUserId}/${this.song.id}/song.mp3`)
+        },
         restartSong() {
             this.$refs.audioPlayer.currentTime = 0;
             if (this.isPlaying) {
@@ -155,6 +181,9 @@ export default {
         onEnded() {
             this.isPlaying = false;
             this.currentTime = 0;
+            if (this.getSongsQueue && this.getSongsQueue.length > 0) {
+                this.nextSong();
+            }
         },
         seek(event) {
             const progressBar = event.currentTarget;
@@ -184,13 +213,32 @@ export default {
             const minutes = Math.floor(seconds / 60);
             const remainingSeconds = Math.floor(seconds % 60);
             return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+        },
+        playNext() {
+            if (this.getSongsQueue && this.getSongsQueue.length > 0) {
+                this.nextSong();
+            }
+        },
+        playPrev() {
+            if (this.currentTime < 2) {
+                if (this.getPreviousSongs && this.getPreviousSongs.length > 0) {
+                    this.prevSong();
+                }
+            } else {
+                this.$refs.audioPlayer.currentTime = 0;
+            }
         }
     },
     watch: {
         song: {
             handler(newValue) {
-                this.playAudio();
-                this.fetchIncrement(newValue)
+                if (newValue) {
+                    this.playAudio();
+                    this.fetchIncrement(newValue)
+                } else {
+                    this.isPlaying = false;
+                    this.currentTime = 0;
+                }
             },
             immediate: true
         }
@@ -202,7 +250,6 @@ export default {
 .song {
     display: flex;
     align-items: center;
-    gap: 15px;
     width: 30%;
 
     img {
